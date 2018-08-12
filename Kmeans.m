@@ -45,7 +45,7 @@ for i=1:num_dp
     clusterIndex(i) = 1;
     
    for j = 2:num_cent
-       
+
        if ( distBuff(i, j) < minimum)
            minimum = distBuff(i, j);
            clusterIndex(i, 1) = j;

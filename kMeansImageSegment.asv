@@ -1,0 +1,18 @@
+% K means algorithm for Image segmentation
+
+num_cent = 4; % assigning the number of centroids
+num_dp = 100; % assigning the number of datapoints
+colorChart = ['b', 'r', 'g', 'y', 'c', 'm'];
+points_type=['o' 'x' 's' '+' 'p' 'h','*'];
+
+filename = 'wolf';
+
+
+
+function [Indices, mask_loc] = get_image(filename);
+
+IMG = imread(strcat(filename, '.jpg' ));
+IMG = rgb2gray(IMG)
+
+
+end
