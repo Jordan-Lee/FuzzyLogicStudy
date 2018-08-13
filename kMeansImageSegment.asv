@@ -6,13 +6,81 @@ colorChart = ['b', 'r', 'g', 'y', 'c', 'm'];
 points_type=['o' 'x' 's' '+' 'p' 'h','*'];
 
 filename = 'wolf';
+[data, mask_loc] = get_image(filename); %mask_loc is to check the error rate
+[col, row] = size(data);
+if filename=='wolf'
+    num_cent = 4;
+end
+num_dp = col*row;
 
 
 
-function [Indices, mask_loc] = get_image(filename);
+% K means Clustering
+function [resultMat] = k_means_1d(data, col, row, num_dp. num_cent)
+    dp = data(:);
+    indices_min = 0;
+    indices_max = 255;
+    cent = rand([0 255], num_cent, 1);
+    cluster_index = zeros(num_dp, 2);
+    mean = zeros(num_cent, 2);
+    
+    distBuff = zeros(num_dp,num_cent);
+    for i = 1:num_dp
+        for j = 1:num_dp
+            distBuff(i,j) = abs(cent(j) - data(i));
+        end
+    end
+    % identifying the cluster of each datapoints 
+    for i=1:num_dp
+        dist_min = distBuff(i, 1);
+        for j=1:num_cent
+            if dist_min > distBuff(i, j)
+                cluster_index(i, 1) = j;
+            end
+        end
+        
+        % assigning the color for datapoints to distinguish them
+        cluster_index(i,2) = colorChart(cluster_index(i,1));
+        
+    end
+    % relocating the centroids
+    for i=1:num_dp
+        mean(cluster_index(i, 1)) = mean(cluster_index(i,1)) + dp(i);
+        mean(cluster_index(i, 2)) = mean(cluste_index(i, 2)) + 1;
+    end
+    for i=1:num_cent
+        cent(i) = mean
+    end
+    
 
-IMG = imread(strcat(filename, '.jpg' ));
-IMG = rgb2gray(IMG)
 
+end
 
+function [indices, mask] = get_image(filename)
+
+    IMG = imread(strcat(filename, '.jpg' ));
+    img = rgb2gray(IMG);
+    indices = double(img);
+
+    MSK = imread(strcat(strcat(filename,'_mask' ),'.jpg'));
+    msk = rgb2gray(MSK);
+    msk = double(msk);
+    mask_loc = zeros(size(msk));
+    % figure;
+    % imshow(msk)
+    if filename == 'wolf'
+        
+        mask_loc(find(100>msk))=0;
+        mask_loc(find(msk>200))=1;
+        mask_loc(find(((200>=msk).*msk)>=100)) = 0.5;
+        
+    end
+    
+    figure
+    imshow(mask_loc);
+    figure;
+    imshow(img);
+    
+    mask = mask_loc;
+    
 end
