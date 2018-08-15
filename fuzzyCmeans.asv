@@ -14,8 +14,6 @@ centroids = zeros(num_cent, 2);
 deg_of_mem = zeros(num_dp, num_cent);
 maxMemb = [0,0];
 proceed = 1;
-countIter = 1;
-THR = 0.000001;
 
 colorChart = ['r', 'g', 'b', 'y', 'c', 'm'];
 ws = 100;
@@ -29,11 +27,10 @@ for i=1:num_dp
     deg_of_mem(i,:) = deg_of_mem(i,:) / norm;
     
 end
-maxMemb(1) = max(deg_of_mem(:));
+maxMemb(1) = max(deg_of_mem);
 
 
-while proceed
-    countIter = countIter+1;
+for it = 1:100
     %compute each centroids
 
     for cent=1:num_cent
@@ -73,13 +70,11 @@ while proceed
        end
     end
     
-    maxMemb(2) = max(deg_of_mem(:));
+    maxMemb(2) = max(deg_of_mem);
     
     % convergence check
-    if (abs(maxMemb(1) - maxMemb(2)) < THR)
-        proceed = 0;
-    end
-    maxMemb(1) = maxMemb(2);
+    if (abs(maxMemb(1) - maxMemb(2)) < 0.001)
+        pro
     
 %     figure;
 % 
