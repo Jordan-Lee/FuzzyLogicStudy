@@ -15,16 +15,17 @@ num_dp = col*row;
 
 % Algorithm Testing
 
-%img_kmean = k_means_1d(data, col, row, num_dp, num_cent);
+img_kmean = k_means_1d(data, col, row, num_dp, num_cent);
 img_3d_kmean = k_means_3d(data, col, row, num_dp, num_cent);
-
-%figure;
-%title('k_means_algorithm')
-%imshow(img_kmean)
+img_fuzzyCmeans = fuzzy_c_means_1st(data, col, row, num_dp, num_cent, 2);
 
 figure;
-title('3d k means')
-imshow(img_3d_kmean)
+title('k_means_algorithm')
+imshow(img_kmean)
+
+%figure;
+%title('3d k means')
+%imshow(img_3d_kmean)
 
 
 % accuracy Calculation
@@ -91,6 +92,10 @@ function [resultMat] = k_means_1d(data, col, row, num_dp, num_cent)
     %returning result in form of image
     temp = reshape(cluster_index(:,1), [col, row]);
     resultMat = temp./3;
+    
+    % result in scatter plot
+    
+    
     
 end
 
@@ -162,27 +167,103 @@ function [resultMat] = k_means_3d(data, col, row, num_dp, num_cent)
         end
         cent = cent_new;
         
-        %plot...
-        figure;
-        scatter3(cent(:,1), cent(:,2), cent(:,3),'filled', 'b','r','g');
-        hold on
-        for i=1:50
-            for j=1:50
-                scatter3(i,j,data(i, j), char(cluster_index((i-1)*row + j, 2)) )
-            end
-        end
-        hold off 
-        
     end % end of iteration
     
     % return result
-    resultMat = reshape(cluster_index(:,1), [col, row] );
+    aux = zeros(col, row);
+    for i=1:col
+        for j=1:row
+            index = (i-1)*row + j;
+            aux(i, j) = cluster_index(index,1)*(255/3);
+        end
+    end
+    resultMat = aux;
     
+    figure;
+    imshow(uint8(aux))
+%     figure
+%     hold on 
+%     for i=1:col
+%         for j=1:row
+%             scatter(i, j, char(cluster_index((i-1)*row+j, 2)))
+%         end
+%     end
+%     
+%     hold off
+    
+    
+ 
     
 end
 
-function [resultMat] = fuzzy_c_means_1st(data, col, row, num_dp)
-
+function [resultMat] = fuzzy_c_means_1st(data, col, row, num_dp, num_cent, fuzzCoeff)
+    
+    dp = data(:);
+    cent = zeros(num_cent, 2); % 2nd row is to store the newly calculated coordinate
+    deg_of_mem = zeros(num_dp, num_cent);
+    
+    colorChart = ['b', 'r', 'g', 'y', 'c', 'm'];
+    proceed = 1;
+    iter_count = 0;
+    
+    % initialize the degree of membership
+    % values of membership at nascent state is randomly selected within the range of 0 to 1
+    for i=1:num_dp
+       deg_of_mem(i,:) = rand(1, num_cent);
+       norm = sum(deg_of_mem(i,:));
+       deg_of_mem(i,:) = deg_of_mem(i, :) / norm;
+    end
+    
+    % iteration
+    while proceed
+        iter_count = iter_count+1;
+        
+        % compute each centroids
+        for i = 1:num_cent
+           temp = zeros(2, 1); % nominator & denominator
+           for j=1:num_dp
+              temp(1) = temp(1) + (deg_of_mem(j,i)^fuzzCoeff) * dp(j);
+              temp(2) = temp(2) + deg_of_mem(j,i)^fuzzCoeff;
+           end
+          cent(i,2) = temp(1)/temp(2);
+        end
+        
+        % Compute the degree of membership
+        for i=1:num_dp
+            for j=1:num_cent
+                dist = abs(dp(i) - cent(j,2));
+                tempSum = 0;
+                for k=1:num_cent
+                   tempDist = abs(dp(i) - cent(k,2));
+                   tempSum = tempSum + (dist/tempDist)^(2/(fuzzCoeff-1));
+                end
+                deg_of_mem(i,j) = 1/tempSum;
+                
+            end
+        end
+        
+        % Check the termination condition
+        if( round(cent(:,1)) == round(cent(:,2)) )
+            proceed = 0;
+        end
+        cent(:,1) = cent(:,2);
+    end % end of iteration
+    
+    %showing the result
+    aux = zeros(col, row);
+    for i=1:col
+        for j=1:row
+            index = (i-1)*row + j;
+            aux(i, j) = cluster_index(index,1)*(255/3);
+        end
+    end
+    resultMat = aux;
+    
+    figure;
+    imshow(uint8(aux))
+    
+    
+    
 end
 
 function [indices, mask] = get_image(filename)
