@@ -17,6 +17,7 @@ num_dp = col*row;
 
 img_kmean = k_means_1d(data, col, row, num_dp, num_cent);
 img_3d_kmean = k_means_3d(data, col, row, num_dp, num_cent);
+img_fuzzyCmeans = fuzzy_c_means_1st(data, col, row, num_dp, num_cent, 2);
 
 figure;
 title('k_means_algorithm')
@@ -173,20 +174,22 @@ function [resultMat] = k_means_3d(data, col, row, num_dp, num_cent)
     for i=1:col
         for j=1:row
             index = (i-1)*row + j;
-            aux(i, j) = cluster_index(index,1);
+            aux(i, j) = cluster_index(index,1)*(255/3);
         end
     end
     resultMat = aux;
- 
-    figure
-    hold on 
-    for i=1:col
-        for j=1:row
-            
-        end
-    end
     
-    hold off
+    figure;
+    imshow(uint8(aux))
+%     figure
+%     hold on 
+%     for i=1:col
+%         for j=1:row
+%             scatter(i, j, char(cluster_index((i-1)*row+j, 2)))
+%         end
+%     end
+%     
+%     hold off
     
     
  
@@ -196,9 +199,10 @@ end
 function [resultMat] = fuzzy_c_means_1st(data, col, row, num_dp, num_cent, fuzzCoeff)
     
     dp = data(:);
-    cent = zeros(num_cent, 2); % 2nd row is to store the newly calculated coordinate
-    deg_of_mem = zeros(num_dp. num_cent);
-    
+    cent = zeros(num_cent, 1); % 2nd row is to store the newly calculated coordinate
+    deg_of_mem = zeros(num_dp, num_cent);
+    maxMemb = [0,0]; % to store greatest membership value
+    THR = 0.0001;
     colorChart = ['b', 'r', 'g', 'y', 'c', 'm'];
     proceed = 1;
     iter_count = 0;
@@ -210,6 +214,7 @@ function [resultMat] = fuzzy_c_means_1st(data, col, row, num_dp, num_cent, fuzzC
        norm = sum(deg_of_mem(i,:));
        deg_of_mem(i,:) = deg_of_mem(i, :) / norm;
     end
+    maxMemb(1) = max(deg_of_mem(:));
     
     % iteration
     while proceed
@@ -219,34 +224,46 @@ function [resultMat] = fuzzy_c_means_1st(data, col, row, num_dp, num_cent, fuzzC
         for i = 1:num_cent
            temp = zeros(2, 1); % nominator & denominator
            for j=1:num_dp
-              temp(1) = num(1) + (deg_of_mem(j,i)^fuzzCoeff) * dp(j);
+              temp(1) = temp(1) + (deg_of_mem(j,i)^fuzzCoeff) * dp(j);
               temp(2) = temp(2) + deg_of_mem(j,i)^fuzzCoeff;
            end
-          cent(i,2) = temp(1)/temp(2);
+          cent(i) = temp(1)/temp(2);
         end
         
         % Compute the degree of membership
         for i=1:num_dp
             for j=1:num_cent
-                dist = abs(dp(i) - cent(j,2));
+                dist = abs(dp(i) - cent(j));
                 tempSum = 0;
                 for k=1:num_cent
-                   tempDist = abs(dp(i) - cent(k,2));
-                   tempSum = tempSum + (dist/tempDist)^(2/(fuzzyCoeff-1));
+                   tempDist = abs(dp(i) - cent(k));
+                   tempSum = tempSum + (dist/tempDist)^(2/(fuzzCoeff-1));
                 end
                 deg_of_mem(i,j) = 1/tempSum;
                 
             end
         end
+        maxMemb(2) = max(deg_of_mem(:));
         
-        % Check the termination condition
-        if( round(cent(:,1)) == round(cent(:,2)) )
+        % Check the convergence condition
+        if( abs(maxMemb(1) - maxMemb(2)) < THR )
             proceed = 0;
         end
-        cent(:,1) = cent(:,2);
+        maxMemb(1) = maxMemb(2);
     end % end of iteration
     
     %showing the result
+    aux = zeros(col, row);
+    for i=1:col
+        for j=1:row
+            index = (i-1)*row + j;
+            aux(i, j) = max(deg_of_mem(index,:));
+        end
+    end
+    resultMat = aux;
+    
+    figure;
+    imshow(uint8(aux))
     
     
     
