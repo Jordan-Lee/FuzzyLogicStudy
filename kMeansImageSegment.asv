@@ -16,15 +16,15 @@ num_dp = col*row;
 % Algorithm Testing
 
 img_kmean = k_means_1d(data, col, row, num_dp, num_cent);
-img_3d_kmean = k_means_3d(data, col, row, num_dp, num_c
+img_3d_kmean = k_means_3d(data, col, row, num_dp, num_cent);
 
 figure;
 title('k_means_algorithm')
 imshow(img_kmean)
 
-figure;
-title('3d k means')
-imshow(
+%figure;
+%title('3d k means')
+%imshow(img_3d_kmean)
 
 
 % accuracy Calculation
@@ -92,6 +92,10 @@ function [resultMat] = k_means_1d(data, col, row, num_dp, num_cent)
     temp = reshape(cluster_index(:,1), [col, row]);
     resultMat = temp./3;
     
+    % result in scatter plot
+    
+    
+    
 end
 
 function [resultMat] = k_means_3d(data, col, row, num_dp, num_cent)
@@ -100,10 +104,10 @@ function [resultMat] = k_means_3d(data, col, row, num_dp, num_cent)
     indices_max = 255;
     
     cent = zeros(num_cent, 3); % row1:col, row2:row, row3:indices
-    cent(:,1) = col*rand(num_cent); % assigning random value for column
-    cent(:,2) = row*rand(num_cent); % assigning random value for row
-    cent_new = zeros(num_cent, 3); % matrix to hold newly calculated centroid coordinate
+    cent(:,1) = col*rand(num_cent, 1); % assigning random value for column
+    cent(:,2) = row*rand(num_cent, 1); % assigning random value for row
     cent(:,3) = indices_min + (indices_max-indices_min)*rand(num_cent,1); %assigning random value for indices
+    cent_new = zeros(num_cent, 3); % matrix to hold newly calculated centroid coordinate
     cluster_index = zeros(num_dp, 2); % 2nd row is to store color info
     mean = zeros(num_cent, 4); % col, row, indices, count
     colorChart = ['b', 'r', 'g', 'y', 'c', 'm'];
@@ -116,26 +120,27 @@ function [resultMat] = k_means_3d(data, col, row, num_dp, num_cent)
         iter_count = iter_count + 1; % counting iteration
         
         %calculate the distance
-        for i=num_cent
-            for j=col
-                for k=row
+        for i=1:num_cent
+            for j=1:col
+                for k=1:row
                     index = (j-1)*row + k;
-                    distBuff(index) = sqrt( (j-cent(i, 1))^2 + (k-cent(i, 2))^2 + (data(j,k)-cent(i, 3))^2 );
+                    distBuff(index, i) = sqrt( (j-cent(i, 1))^2 + (k-cent(i, 2))^2 + (data(j,k)-cent(i, 3))^2 );
                 end
             end
         end
         % assign the cluster based on the distance
         for i = 1:num_dp
-            min = distBuff(index,1);
-            cluster_index(index, 1) = 1;
-            for k=1:num_cent
-                if(min < distBuff(index, k))
-                   min = distBuff(index, k);
-                   cluster_index(index, 1) = k;
+            min = distBuff(i,1);
+            cluster_index(i, 1) = 1;
+            for k=2:num_cent
+                if(min > distBuff(i, k))
+                   min = distBuff(i, k);
+                   cluster_index(i, 1) = k;
                 end
             end
+            % assigning the color for datapoints to distinguish them
+            cluster_index(i,2) = colorChart(cluster_index(i,1));
         end
-        
         %reassign the centroid with the mean of datapoints
         for i=1:col
             for j=1:row
@@ -159,18 +164,92 @@ function [resultMat] = k_means_3d(data, col, row, num_dp, num_cent)
         if( round(cent) == round(cent_new) )
            proceed = 0;
         end
-        cent = new_cent;
+        cent = cent_new;
         
     end % end of iteration
     
     % return result
-    resultMat = reshape(((255/3)*cluster_index(:,1)), [col, row] );
+    aux = zeros(col, row);
+    for i=1:col
+        for j=1:row
+            index = (i-1)*row + j;
+            aux(i, j) = cluster_index(index,1);
+        end
+    end
+    resultMat = aux;
+ 
+    figure
+    hold on 
+    for i=1:col
+        for j=1:row
+            
+        end
+    end
     
+    hold off
+    
+    
+ 
     
 end
 
-function [resultMat] = fuzzy_c_means_1st(data, col, row, num_dp)
-
+function [resultMat] = fuzzy_c_means_1st(data, col, row, num_dp, num_cent, fuzzCoeff)
+    
+    dp = data(:);
+    cent = zeros(num_cent, 2); % 2nd row is to store the newly calculated coordinate
+    deg_of_mem = zeros(num_dp. num_cent);
+    
+    colorChart = ['b', 'r', 'g', 'y', 'c', 'm'];
+    proceed = 1;
+    iter_count = 0;
+    
+    % initialize the degree of membership
+    % values of membership at nascent state is randomly selected within the range of 0 to 1
+    for i=1:num_dp
+       deg_of_mem(i,:) = rand(1, num_cent);
+       norm = sum(deg_of_mem(i,:));
+       deg_of_mem(i,:) = deg_of_mem(i, :) / norm;
+    end
+    
+    % iteration
+    while proceed
+        iter_count = iter_count+1;
+        
+        % compute each centroids
+        for i = 1:num_cent
+           temp = zeros(2, 1); % nominator & denominator
+           for j=1:num_dp
+              temp(1) = num(1) + (deg_of_mem(j,i)^fuzzCoeff) * dp(j);
+              temp(2) = temp(2) + deg_of_mem(j,i)^fuzzCoeff;
+           end
+          cent(i,2) = temp(1)/temp(2);
+        end
+        
+        % Compute the degree of membership
+        for i=1:num_dp
+            for j=1:num_cent
+                dist = abs(dp(i) - cent(j,2));
+                tempSum = 0;
+                for k=1:num_cent
+                   tempDist = abs(dp(i) - cent(k,2));
+                   tempSum = tempSum + (dist/tempDist)^(2/(fuzzyCoeff-1));
+                end
+                deg_of_mem(i,j) = 1/tempSum;
+                
+            end
+        end
+        
+        % Check the termination condition
+        if( round(cent(:,1)) == round(cent(:,2)) )
+            proceed = 0;
+        end
+        cent(:,1) = cent(:,2);
+    end % end of iteration
+    
+    %showing the result
+    
+    
+    
 end
 
 function [indices, mask] = get_image(filename)
@@ -193,10 +272,10 @@ function [indices, mask] = get_image(filename)
         
     end
     
-    figure
-    imshow(mask_loc);
-    figure;
-    imshow(img);
+    %figure
+    %imshow(mask_loc);
+    %figure;
+    %imshow(img);
     
     mask = mask_loc;
     
