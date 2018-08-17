@@ -6,30 +6,57 @@ num_dp = 100; % assigning the number of datapoints
 points_type=['o' 'x' 's' '+' 'p' 'h','*'];
 
 filename = 'wolf';
-[data, mask_loc] = get_image(filename); %mask_loc is to check the error rate
+[data] = get_image(filename); %mask_loc is to check the error rate
 [col, row] = size(data);
 if filename=='wolf'
     num_cent = 3;
 end
 num_dp = col*row;
+[gaus, med, ent] = imgConvert(data);
 
 % Algorithm Testing
 
 img_kmean = k_means_1d(data, col, row, num_dp, num_cent);
-img_3d_kmean = k_means_3d(data, col, row, num_dp, num_cent);
-img_fuzzyCmeans = fuzzy_c_means_1st(data, col, row, num_dp, num_cent, 2);
-
+img_fuzzyCmeans = fuzzy_c_means_1st(data, col, row, num_dp, num_cent, 4);
 figure;
-title('k_means_algorithm')
 imshow(img_kmean)
+title('k Means')
+figure;
+imshow(uint8(img_fuzzyCmeans));
+title('Fuzzy C mean')
+
+
+gausKmean = k_means_1d(gaus, col, row, num_dp, num_cent);
+figure;
+imshow(gausKmean)
+title('gauss k Means')
+medKmean = k_means_1d(med, col, row, num_dp, num_cent);
+figure;
+imshow(medKmean)
+title('median k Means')
+% entKmean = k_means_1d(ent, col, row, num_dp, num_cent);
+% figure;
+% imshow(entKmean)
+% title('entropy k Means')
+
+gausFuzzCm = fuzzy_c_means_1st(gaus, col, row, num_dp, num_cent, 2);
+figure;
+imshow(uint8(gausFuzzCm));
+title('gauss Fuzzy C mean')
+medFuzzCm = fuzzy_c_means_1st(med, col, row, num_dp, num_cent, 2);
+figure;
+imshow(uint8(medFuzzCm));
+title('median Fuzzy C mean')
+% entFuzzCm = fuzzy_c_means_1st(ent, col, row, num_dp, num_cent, 2);
+% figure;
+% imshow(uint8(entFuzzCm));
+% title('entropy Fuzzy C mean')
 
 %figure;
 %title('3d k means')
 %imshow(img_3d_kmean)
 
-
 % accuracy Calculation
-
 
 % K means Clustering
 function [resultMat] = k_means_1d(data, col, row, num_dp, num_cent)
@@ -92,11 +119,6 @@ function [resultMat] = k_means_1d(data, col, row, num_dp, num_cent)
     %returning result in form of image
     temp = reshape(cluster_index(:,1), [col, row]);
     resultMat = temp./3;
-    
-    % result in scatter plot
-    
-    
-    
 end
 
 function [resultMat] = k_means_3d(data, col, row, num_dp, num_cent)
@@ -253,23 +275,24 @@ function [resultMat] = fuzzy_c_means_1st(data, col, row, num_dp, num_cent, fuzzC
     end % end of iteration
     
     %showing the result
-    aux = zeros(col, row);
-    for i=1:col
-        for j=1:row
-            index = (i-1)*row + j;
-            aux(i, j) = max(deg_of_mem(index,:));
-        end
-    end
-    resultMat = aux;
-    
-    figure;
-    imshow(uint8(aux.*255))
-    
-    
-    
+    resultMat = result_knn(cent, data, col, row);
 end
 
-function [indices, mask] = get_image(filename)
+function [resultMat] = result_knn(cent, data, col, row)
+    % K nearest neighbor ( k=1 )
+    K = 1;
+    resultMat = zeros(col, row);
+    map = [0, 125, 255];
+    for i=1:col
+        for j=1:row
+           tmp = abs(cent - data(i, j));
+           [d, loc] = min(tmp);
+           resultMat(i, j) = map(loc);
+        end
+    end    
+end
+
+function [indices] = get_image(filename)
 
     IMG = imread(strcat(filename, '.jpg' ));
     img = rgb2gray(IMG);
@@ -287,13 +310,18 @@ function [indices, mask] = get_image(filename)
         mask_loc(find(msk>200))=1;
         mask_loc(find(((200>=msk).*msk)>=100)) = 0.5;
         
-    end
-    
-    %figure
-    %imshow(mask_loc);
-    %figure;
-    %imshow(img);
-    
-    mask = mask_loc;
-    
+    end 
+end
+
+function [gaus, med, entro] = imgConvert(img)
+    % creates filtered images
+    img = uint8(img);
+    gaus = imgaussfilt(img,0.5); % standard deviation of 0.5 gaussian blur
+    med = medfilt2(img, [3 3]); % 3*3 median filtering
+    ent = entropyfilt(img, true(9));
+    entro = (ent -min(ent))./(max(ent)-min(ent));
+
+    gaus = double(gaus);
+    med = double(med);
+    entro = double(entro);
 end
